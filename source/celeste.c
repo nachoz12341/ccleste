@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include "celeste.h"
+#include "math_util.h"
 
 
 #ifdef CELESTE_P8_FIXEDP

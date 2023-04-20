@@ -1,46 +1,152 @@
+#---------------------------------------------------------------------------------
+.SUFFIXES:
+#---------------------------------------------------------------------------------
 
-# set to 1 to use SDL1.2
-SDL_VER?=2
+ifeq ($(strip $(DEVKITARM)),)
+$(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
+endif
 
-ifeq ($(SDL_VER),2)
-	SDL_CONFIG=sdl2-config
-	SDL_LD=-lSDL2 -lSDL2_mixer
+include $(DEVKITARM)/ds_rules
+
+#---------------------------------------------------------------------------------
+# TARGET is the name of the output
+# BUILD is the directory where object files & intermediate files will be placed
+# SOURCES is a list of directories containing source code
+# INCLUDES is a list of directories containing extra header files
+# MAXMOD_SOUNDBANK contains a directory of music and sound effect files
+#---------------------------------------------------------------------------------
+TARGET		:=	$(shell basename $(CURDIR))
+BUILD		:=	build
+SOURCES		:=	source
+DATA		:=	data  
+INCLUDES	:=	include
+GRAPHICS	:=  gfx
+MUSIC       :=  music
+
+#---------------------------------------------------------------------------------
+# options for code generation
+#---------------------------------------------------------------------------------
+ARCH	:=	-mthumb -mthumb-interwork
+
+CFLAGS	:=	-g -Wall -O2\
+ 		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
+		-ffast-math \
+		$(ARCH)
+
+CFLAGS	+=	$(INCLUDE) -DARM9
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
+
+ASFLAGS	:=	-g $(ARCH)
+LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+
+#---------------------------------------------------------------------------------
+# any extra libraries we wish to link with the project (order is important)
+#---------------------------------------------------------------------------------
+LIBS	:= 	-lmm9 -lnds9
+ 
+ 
+#---------------------------------------------------------------------------------
+# list of directories containing libraries, this must be the top level containing
+# include and lib
+#---------------------------------------------------------------------------------
+LIBDIRS	:=	$(LIBNDS)
+ 
+#---------------------------------------------------------------------------------
+# no real need to edit anything past this point unless you need to add additional
+# rules for different file extensions
+#---------------------------------------------------------------------------------
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+#---------------------------------------------------------------------------------
+
+export OUTPUT	:=	$(CURDIR)/$(TARGET)
+
+export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
+					$(foreach dir,$(DATA),$(CURDIR)/$(dir)) \
+					$(foreach dir,$(GRAPHICS),$(CURDIR)/$(dir))
+
+export DEPSDIR	:=	$(CURDIR)/$(BUILD)
+
+CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*))) soundbank.bin
+SPRITE_FILES   :=  $(foreach dir, $(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
+BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
+
+export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(MUSIC)/*.*)),$(CURDIR)/$(MUSIC)/$(dir))
+#---------------------------------------------------------------------------------
+# use CXX for linking C++ projects, CC for standard C
+#---------------------------------------------------------------------------------
+ifeq ($(strip $(CPPFILES)),)
+#---------------------------------------------------------------------------------
+	export LD	:=	$(CC)
+#---------------------------------------------------------------------------------
 else
-ifeq ($(SDL_VER),1)
-	SDL_CONFIG=sdl-config
-	SDL_LD=-lSDL -lSDL_mixer
-else
-	SDL_CONFIG=$(error "invalid SDL version '$(SDL_VER)'. possible values are '1' and '2'")
+#---------------------------------------------------------------------------------
+	export LD	:=	$(CXX)
+#---------------------------------------------------------------------------------
 endif
-endif
+#---------------------------------------------------------------------------------
 
-CFLAGS=-Wall -g -O2 `$(SDL_CONFIG) --cflags`
-LDFLAGS=$(SDL_LD)
-CELESTE_CC=$(CC)
-
-ifneq ($(USE_FIXEDP),)
-	OUT=ccleste-fixedp
-	CELESTE_OBJ=celeste-fixedp.o
-	CFLAGS+=-DCELESTE_P8_FIXEDP
-	CELESTE_CC=$(CXX)
-else
-	OUT=ccleste
-	CELESTE_OBJ=celeste.o
-	LDFLAGS+=-lm
-endif
-
-ifneq ($(HACKED_BALLOONS),)
-	CFLAGS+=-DCELESTE_P8_HACKED_BALLOONS
-endif
-
-all: $(OUT)
-
-$(OUT): sdl12main.c $(CELESTE_OBJ) celeste.h sdl20compat.inc.c
-	$(CC) $(CFLAGS) sdl12main.c $(CELESTE_OBJ) -o $(OUT) $(LDFLAGS)
-
-$(CELESTE_OBJ): celeste.c celeste.h
-	$(CELESTE_CC) $(CFLAGS) -c -o $(CELESTE_OBJ) celeste.c
-
+export OFILES	:=	$(SPRITE_FILES:.png=.o) \
+				$(addsuffix .o,$(BINFILES)) \
+				$(BMPFILES:.bmp=.o) \
+			$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
+ 
+export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
+			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+			-I$(CURDIR)/$(BUILD)
+ 
+export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+ 
+.PHONY: $(BUILD) clean
+ 
+#---------------------------------------------------------------------------------
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+ 
+#---------------------------------------------------------------------------------
 clean:
-	$(RM) ccleste ccleste-fixedp celeste.o celeste-fixedp.o
-	make -f Makefile.3ds clean
+	@echo clean ...
+	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).nds
+
+#---------------------------------------------------------------------------------
+else
+ 
+#---------------------------------------------------------------------------------
+# main targets
+#---------------------------------------------------------------------------------
+$(OUTPUT).nds	: 	$(OUTPUT).elf
+$(OUTPUT).elf	:	$(OFILES)
+
+#---------------------------------------------------------------------------------
+%.s %.h	: %.bmp %.grit
+	grit $< -fts -o$*
+
+%.s %.h	: %.png %.grit
+	grit $< -fts -o$*
+#---------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------
+# rule to build soundbank from music files
+#---------------------------------------------------------------------------------
+soundbank.bin soundbank.h : $(AUDIOFILES)
+#---------------------------------------------------------------------------------
+	@mmutil $^ -d -osoundbank.bin -hsoundbank.h
+
+#---------------------------------------------------------------------------------
+# This rule links in binary data with the .bin extension
+#---------------------------------------------------------------------------------
+%.bin.o	%_bin.h :	%.bin
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	@$(bin2o)
+
+
+ 
+-include $(DEPSDIR)/*.d
+ 
+#---------------------------------------------------------------------------------------
+endif
+#---------------------------------------------------------------------------------------

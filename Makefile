@@ -21,7 +21,8 @@ SOURCES		:=	source
 DATA		:=	data  
 INCLUDES	:=	include
 GRAPHICS	:=  gfx
-MUSIC       :=  music
+SFX       	:=  sfx
+NITRODATA	:=	nitrofiles
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -42,7 +43,7 @@ LDFLAGS	=	-specs=ds_arm9.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
 #---------------------------------------------------------------------------------
-LIBS	:= 	-lmm9 -lnds9
+LIBS	:= 	-lfilesystem -lfat -lmm9 -lnds9 
  
  
 #---------------------------------------------------------------------------------
@@ -66,6 +67,10 @@ export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
+ifneq ($(strip $(NITRODATA)),)
+	export NITRO_FILES	:=	$(CURDIR)/$(NITRODATA)
+endif
+
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
@@ -73,7 +78,7 @@ BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*))) soundbank.bi
 SPRITE_FILES   :=  $(foreach dir, $(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
 BMPFILES	:=	$(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.bmp)))
 
-export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(MUSIC)/*.*)),$(CURDIR)/$(MUSIC)/$(dir))
+export AUDIOFILES	:=	$(foreach dir,$(notdir $(wildcard $(SFX)/*.*)),$(CURDIR)/$(SFX)/$(dir))
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C
 #---------------------------------------------------------------------------------
@@ -119,6 +124,7 @@ else
 # main targets
 #---------------------------------------------------------------------------------
 $(OUTPUT).nds	: 	$(OUTPUT).elf
+$(OUTPUT).nds	: 	$(shell find $(TOPDIR)/$(NITRODATA))
 $(OUTPUT).elf	:	$(OFILES)
 
 #---------------------------------------------------------------------------------

@@ -838,6 +838,7 @@ static void PLAYER_update(OBJ* this) {
 			}
 		
 			psfx(3);
+			//TODO
 			freeze=2;
 			shake=6;
 			this->dash_target.x=2*sign(this->spd.x);
@@ -1769,7 +1770,7 @@ void Celeste_P8_update() {
 // drawing functions //
 //////////////////////-
 void Celeste_P8_draw() {
-	if (freeze>0) { return; }
+	//if (freeze>0) { return; }
    
 	// reset all palette values
 	P8pal_reset();

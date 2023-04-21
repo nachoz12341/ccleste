@@ -2,11 +2,12 @@
 #include <nds/arm9/math.h>
 #include <stdio.h>
 
+#define SIN_BITS 12
 #define MATH_BITS 4
 
 float sinf(float x){
-    s16 a = floatToFixed(x,MATH_BITS);
-    return fixedToFloat(sinLerp(a),MATH_BITS);
+    s16 a = floatToFixed(x,SIN_BITS);
+    return fixedToFloat(sinLerp(a),SIN_BITS);
 }
 
 float floorf(float x){

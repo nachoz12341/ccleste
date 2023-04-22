@@ -42,8 +42,11 @@ char* mus[6] = {NULL};
 #define PICO8_W 128
 #define PICO8_H 128
 
-static const float scale_x = 2.0f;
-static const float scale_y = 1.5f;
+static float scale_x = 2.0f;
+static float scale_y = 1.5f;
+int scale_off_x = 0;
+int scale_off_y = 0;
+int screen_size=2;
 
 static _Bool enable_screenshake = 1;
 static _Bool paused = 0;
@@ -161,7 +164,7 @@ static void p8_line(int x0, int y0, int x1, int y1, unsigned char color) {
 	#undef CLAMP
   	
 	#define PLOT(x,y) do {                                               \
-     glBoxFilled(x*scale_x,y*scale_y,x*scale_x+scale_x,y*scale_y+scale_y,realcolor); \
+     glBoxFilled(x*scale_x+scale_off_x,y*scale_y+scale_off_y,x*scale_x+scale_x+scale_off_x,y*scale_y+scale_y+scale_off_y,realcolor); \
 	} while (0)
 
 	int sx, sy, dx, dy, err, e2;
@@ -196,7 +199,7 @@ static void p8_rectfill(int x0, int y0, int x1, int y1, int col) {
 	int w = (x1 - x0 + 1)*scale_x;
 	int h = (y1 - y0 + 1)*scale_y;
 	if (w > 0 && h > 0) {
-		glBoxFilled(x0*scale_x, y0*scale_y, x1*scale_x, y1*scale_y, getcolor(col));
+		glBoxFilled(x0*scale_x+scale_off_x, y0*scale_y+scale_off_y, x1*scale_x+scale_off_x, y1*scale_y+scale_off_y, getcolor(col));
 	}
 }
 
@@ -204,7 +207,7 @@ static void p8_print(const char* str, int x, int y, int col) {
 	glColor(getcolor(col));
 	for (char c = *str; c; c = *(++str)) {
 		int sprite = c-33;
-		glSpriteScaleXY(x*scale_x, y*scale_y, floatToFixed(scale_x,12),floatToFixed(scale_y,12), GL_FLIP_NONE, &Font[sprite]);
+		glSpriteScaleXY(x*scale_x+scale_off_x, y*scale_y+scale_off_y, floatToFixed(scale_x,12),floatToFixed(scale_y,12), GL_FLIP_NONE, &Font[sprite]);
 		x += 4;
 	}
 	glColor( RGB15(31,31,31) );
@@ -230,6 +233,13 @@ static void OSDdraw(void) {
 		p8_rectfill(x-1, y-1, x+4*strlen(osd_text)-1, y+5, 0);
 		p8_print(osd_text, x, y, 7);
 	}
+}
+
+static void DrawScreenBorder(){
+	glBoxFilled(0,0,SCREEN_WIDTH,scale_off_y, getcolor(0));
+	glBoxFilled(0,0,scale_off_x,SCREEN_HEIGHT, getcolor(0));
+	glBoxFilled(0,SCREEN_HEIGHT-scale_off_y,SCREEN_WIDTH,SCREEN_HEIGHT, getcolor(0));
+	glBoxFilled(SCREEN_WIDTH-scale_off_x,0,SCREEN_WIDTH,SCREEN_HEIGHT, getcolor(0));
 }
 
 int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...) 
@@ -284,7 +294,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...)
 				if(flipx)	flip |= GL_FLIP_H;
 				if(flipy)	flip |= GL_FLIP_V; 
 				
-				glSpriteScaleXY( (x-camera_x)*scale_x, (y-camera_y)*scale_y,floatToFixed(scale_x,12),floatToFixed(scale_y,12), flip, &Atlas[sprite]);
+				glSpriteScaleXY( (x-camera_x)*scale_x+scale_off_x, (y-camera_y)*scale_y+scale_off_y,floatToFixed(scale_x,12),floatToFixed(scale_y,12), flip, &Atlas[sprite]);
 			}
 		} break;
 		case CELESTE_P8_BTN: { //btn(b)
@@ -318,15 +328,15 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...)
 			unsigned short realcolor = getcolor(col);
 
 			if (r <= 1) {
-				glBoxFilled(scale_x*(cx-1), scale_y*(cy  ), (scale_x*(cx-1))+scale_x*3, (scale_y*(cy  ))+scale_y  , realcolor);
-				glBoxFilled(scale_x*(cx  ), scale_y*(cy-1), (scale_x*(cx  ))+scale_x  , (scale_y*(cy-1))+scale_y*3, realcolor);
+				glBoxFilled(scale_x*(cx-1)+scale_off_x, scale_y*(cy  )+scale_off_y, (scale_x*(cx-1))+scale_x*3+scale_off_x, (scale_y*(cy  ))+scale_y+scale_off_y  , realcolor);
+				glBoxFilled(scale_x*(cx  )+scale_off_x, scale_y*(cy-1)+scale_off_y, (scale_x*(cx  ))+scale_x+scale_off_x  , (scale_y*(cy-1))+scale_y*3+scale_off_y, realcolor);
 			} else if (r <= 2) {
-				glBoxFilled(scale_x*(cx-2), scale_y*(cy-1), (scale_x*(cx-2))+scale_x*5, (scale_y*(cy-1))+scale_y*3, realcolor);
-				glBoxFilled(scale_x*(cx-1), scale_y*(cy-2), (scale_x*(cx-1))+scale_x*3, (scale_y*(cy-2))+scale_y*5, realcolor);
+				glBoxFilled(scale_x*(cx-2)+scale_off_x, scale_y*(cy-1)+scale_off_y, (scale_x*(cx-2))+scale_x*5+scale_off_x, (scale_y*(cy-1))+scale_y*3+scale_off_y, realcolor);
+				glBoxFilled(scale_x*(cx-1)+scale_off_x, scale_y*(cy-2)+scale_off_y, (scale_x*(cx-1))+scale_x*3+scale_off_x, (scale_y*(cy-2))+scale_y*5+scale_off_y, realcolor);
 			} else if (r <= 3) {
-				glBoxFilled(scale_x*(cx-3), scale_y*(cy-1), (scale_x*(cx-3))+scale_x*7, (scale_y*(cy-1))+scale_y*3, realcolor);
-				glBoxFilled(scale_x*(cx-1), scale_y*(cy-3), (scale_x*(cx-1))+scale_x*3, (scale_y*(cy-3))+scale_y*7, realcolor);
-				glBoxFilled(scale_x*(cx-2), scale_y*(cy-2), (scale_x*(cx-2))+scale_x*5, (scale_y*(cy-2))+scale_y*5, realcolor);
+				glBoxFilled(scale_x*(cx-3)+scale_off_x, scale_y*(cy-1)+scale_off_y, (scale_x*(cx-3))+scale_x*7+scale_off_x, (scale_y*(cy-1))+scale_y*3+scale_off_y, realcolor);
+				glBoxFilled(scale_x*(cx-1)+scale_off_x, scale_y*(cy-3)+scale_off_y, (scale_x*(cx-1))+scale_x*3+scale_off_x, (scale_y*(cy-3))+scale_y*7+scale_off_y, realcolor);
+				glBoxFilled(scale_x*(cx-2)+scale_off_x, scale_y*(cy-2)+scale_off_y, (scale_x*(cx-2))+scale_x*5+scale_off_x, (scale_y*(cy-2))+scale_y*5+scale_off_y, realcolor);
 			} else { //i dont think the game uses this
 				int f = 1 - r; //used to track the progress of the drawn circle (since its semi-recursive)
 				int ddFx = 1; //step x
@@ -417,8 +427,7 @@ int pico8emu(CELESTE_P8_CALLBACK_TYPE call, ...)
 					int tile = tilemap_data[x + mx + (y + my)*128];
 					//hack
 					if (mask == 0 || (mask == 4 && tile_flags[tile] == 4) || gettileflag(tile, mask != 4 ? mask-1 : mask)) {
-						//glSprite((tx+x*8-camera_x)*scale_x, (ty+y*8-camera_y)*scale_y, GL_FLIP_NONE, &Atlas[tile]);
-						glSpriteScaleXY((tx+x*8-camera_x)*scale_x, (ty+y*8-camera_y)*scale_y,floatToFixed(scale_x,12),floatToFixed(scale_y,12), GL_FLIP_NONE, &Atlas[tile]);
+						glSpriteScaleXY((tx+x*8-camera_x)*scale_x+scale_off_x, (ty+y*8-camera_y)*scale_y+scale_off_y,floatToFixed(scale_x,12),floatToFixed(scale_y,12), GL_FLIP_NONE, &Atlas[tile]);
 					}
 				}
 			}
@@ -487,10 +496,39 @@ static void mainLoop(void) {
 		paused = !paused;	
 	}
 
-	if(keys_down & KEY_SELECT)
+	if(keys_down & KEY_Y)
 	{
 		enable_screenshake = !enable_screenshake;
 		OSDset("screenshake: %s", enable_screenshake ? "on" : "off");
+	}
+
+	if(keys_down & KEY_SELECT)
+	{
+		screen_size=(screen_size+1)%3;
+
+		switch(screen_size)
+		{
+			case 0:
+				scale_x=1.0f;
+				scale_y=1.0f;
+				OSDset("Screen size: original");
+			break;
+
+			case 1:
+				scale_x=1.5f;
+				scale_y=1.5f;
+				OSDset("Screen size: scaled");
+			break;
+
+			case 2:
+				scale_x=2.0f;
+				scale_y=1.5f;
+				OSDset("Screen size: full screen");
+			break;
+		}
+
+		scale_off_x=(SCREEN_WIDTH/2)-(PICO8_W*scale_x/2);
+		scale_off_y=(SCREEN_HEIGHT/2)-(PICO8_H*scale_y/2);
 	}
 
 	buttons_state=0;
@@ -510,6 +548,7 @@ static void mainLoop(void) {
 	} else {
 		Celeste_P8_update();
 		Celeste_P8_draw();
+		DrawScreenBorder();
 	}
 	OSDdraw();
 

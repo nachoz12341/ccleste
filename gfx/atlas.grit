@@ -5,5 +5,5 @@
 -gb
 
 
-# Set the bit depth to 8 (256 colors)
+# Set the bit depth to 4 (16 colors)
 -gB4

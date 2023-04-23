@@ -1,3 +1,7 @@
 /build
 /*.elf
 /*.nds
+arm7/build
+arm9/build
+arm7/*.elf
+arm9/*.elf

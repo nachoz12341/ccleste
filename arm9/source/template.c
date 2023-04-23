@@ -563,19 +563,7 @@ static void mainLoop(void) {
 // main
 //---------------------------------------------------------------------
 int main(void) 
-{
-	/*consoleDemoInit();
-	defaultExceptionHandler();
-	if (!nitroFSInit(NULL)) {
-		printf("NitroFSInit failure\n");
-	}
-
-	soundEnable();
-
-	SoundStrm_t *strm = playSoundStrm("nitro:/music/mus0.wav", 1);
-	if(strm == 0) {
-		printf("failed to start wave stream :(\n");
-	}*/
+{	
 	//-----------------------------------------------------------------
 	// Initialize the graphics engines
 	//-----------------------------------------------------------------
@@ -623,6 +611,18 @@ int main(void)
 	font.convertSingleColor = false;
 	
 	consoleSetFont(console, &font);*/
+
+	defaultExceptionHandler();
+	if (!nitroFSInit(NULL)) {
+		printf("NitroFSInit failure\n");
+	}
+
+	soundEnable();
+
+	SoundStrm_t *strm = playSoundStrm("nitro:/music/mus0.wav", 1);
+	if(strm == 0) {
+		printf("failed to start wave stream :(\n");
+	}
 
 	/////////////////////////////////////////////////////////////////////////
 	ResetPalette();

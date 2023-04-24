@@ -28,9 +28,9 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
+#include <maxmod7.h>
 /*
 #include <dswifi7.h>
-#include <maxmod7.h>
 */
 /*
 //---------------------------------------------------------------------------------
@@ -75,7 +75,7 @@ int main() {
 	fifoInit();
 	touchInit();
 
-	/* mmInstall(FIFO_MAXMOD); */
+	mmInstall(FIFO_MAXMOD);
 
 	SetYtrigger(80);
 
